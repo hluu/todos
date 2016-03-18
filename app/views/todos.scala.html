@@ -1,0 +1,10 @@
+@(todos: List[Todo])
+
+@main("Todos") {
+ Todos:
+	@todos.map{todo =>
+		@todo.title
+		<a href="@routes.TodoController.todos(todo.id)">details</a>
+		<br>
+	}
+}
