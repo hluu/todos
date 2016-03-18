@@ -1,9 +1,11 @@
 package models
 
 import javax.inject.Inject
+import org.joda.time.DateTime
 import play.api.db.slick.DatabaseConfigProvider
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
+import SlickMapping.jodaDateTimeMapping
 
 object TodoStatus extends Enumeration {
   val open = Value("open")
@@ -12,7 +14,7 @@ object TodoStatus extends Enumeration {
 }
 
 
-case class Todo(id: Long, title: String, desc: String, status: TodoStatus.Value) {
+case class Todo(id: Long, title: String, desc: String, status: TodoStatus.Value, createdDate:DateTime) {
   def patch(title: Option[String], desc: Option[String], status: Option[TodoStatus.Value]) : Todo =
     this.copy(title = title.getOrElse(this.title),
               desc = desc.getOrElse(this.desc),
@@ -42,7 +44,7 @@ class TodoRepo @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
 
 
   def create(title: String): Future[Long] = {
-    val todo = Todo(0, title, "", TodoStatus.open)
+    val todo = Todo(0, title, "", TodoStatus.open, new DateTime(System.currentTimeMillis()))
     db.run(Todos returning Todos.map(_.id) += todo)
   }
 
@@ -58,9 +60,10 @@ class TodoRepo @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
     def title = column[String]("TITLE")
     def desc = column[String]("DESC")
     def status = column[TodoStatus.Value]("STATUS")
+    def createdDate = column[DateTime]("CREATED_DATE")
 
-    def * = (id, title, desc, status) <> (Todo.tupled, Todo.unapply)
-    def ? = (id.?, title.?, desc.?, status.?).shaped.<>({ r => import r._; _1.map(_ => Todo.tupled((_1.get, _2.get, _3.get, _4.get))) }, (_: Any) => throw new Exception("Inserting into ? Todo not supported."))
+    def * = (id, title, desc, status, createdDate) <> (Todo.tupled, Todo.unapply)
+    def ? = (id.?, title.?, desc.?, status.?, createdDate.?).shaped.<>({ r => import r._; _1.map(_ => Todo.tupled((_1.get, _2.get, _3.get, _4.get, _5.get))) }, (_: Any) => throw new Exception("Inserting into ? Todo not supported."))
   }
 
   implicit val todoStatusColumnType = MappedColumnType.base[TodoStatus.Value, String](
