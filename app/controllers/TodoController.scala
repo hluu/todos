@@ -19,7 +19,18 @@ class TodoController @Inject()( todoRepo: TodoRepo)
   extends Controller {
 
   def createTodo = Action(BodyParsers.parse.json) { implicit request =>
-    val placeResult = request.body.validate[Todo]
+
+
+   val placeResult = request.body.validate[Todo]
+
+    placeResult match {
+      case s: JsSuccess[Todo] =>  {
+        val newId = todoRepo.create2(s.get)
+        Ok(Json.obj("status" ->"OK"))
+      }
+      case e: JsError => BadRequest(Json.obj("status" ->"KO", "message" -> JsError.toJson(e).toString()))
+    }
+    /*
     placeResult.fold(
       errors => {
         BadRequest(Json.obj("status" ->"KO", "message" -> JsError.toFlatJson(errors)))
@@ -30,7 +41,7 @@ class TodoController @Inject()( todoRepo: TodoRepo)
         Ok(Json.obj("status" ->"OK"))
         //Ok(Json.obj("status" ->"OK", "message" -> ("Todo  '"+todo.title+"' saved.") ))
       }
-    )
+    )    */
   }
 
   def createTodo2(title: String)= Action.async { implicit rs =>
@@ -45,9 +56,19 @@ class TodoController @Inject()( todoRepo: TodoRepo)
 
 
   def todos(id: Long) = Action.async { implicit rs =>
+    val result = todoRepo.findById(id)
+    result.map(r => {
+      r match {
+        case Some(todo) =>  Ok(Json.toJson(todo))
+        case None => BadRequest(Json.obj("msg: " -> s"$id not found " ))
+      }
+    })
+
+    /*
     for {
       Some(todo) <-  todoRepo.findById(id)
     } yield Ok(Json.toJson(todo))
+    */
   }
 
 
@@ -65,21 +86,21 @@ class TodoController @Inject()( todoRepo: TodoRepo)
 
   implicit val TodoWrites : Writes[Todo] = (
 
-    (JsPath \ "id").write[Long] and
+    (JsPath \ "id").writeNullable[Long] and
       (JsPath \ "title").write[String] and
       (JsPath \ "desc").write[String] and
-      (JsPath \ "status").write[TodoStatus.Value] and
-      (JsPath \ "createdDate").write[DateTime]
+      (JsPath \ "status").writeNullable[TodoStatus.Value] and
+      (JsPath \ "createdDate").writeNullable[DateTime]
     ) (unlift(Todo.unapply))
 
 
 
   implicit  val TodoReads : Reads[Todo] = (
-    (JsPath \ "id").read[Long] and
+    (JsPath \ "id").readNullable[Long] and
     (JsPath \ "title").read[String](maxLength[String](100)) and
       (JsPath \ "desc").read[String] and
-      (JsPath \ "status").read[TodoStatus.Value] and
-      (JsPath \ "createdDate").read[DateTime]
+      (JsPath \ "status").readNullable[TodoStatus.Value] and
+      (JsPath \ "createdDate").readNullable[DateTime]
 
     ) (Todo.apply _)
 

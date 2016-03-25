@@ -4,7 +4,7 @@
  Todos:
 	@todos.map{todo =>
 		@todo.title
-		<a href="@routes.TodoController.todos(todo.id)">details</a>
+		<a href="@routes.TodoController.todos(todo.id.getOrElse(0))">details</a>
 		<br>
 	}
 }

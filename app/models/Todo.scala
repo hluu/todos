@@ -22,12 +22,18 @@ object TodoStatus extends Enumeration {
 }
 
 
-case class Todo(id: Long, title: String, desc: String, status: TodoStatus.Value, createdDate:DateTime) {
-  def patch(title: Option[String], desc: Option[String], status: Option[TodoStatus.Value]) : Todo =
+case class Todo(id: Option[Long],
+                title: String,
+                desc: String,
+                status: Option[TodoStatus.Value],
+                createdDate:Option[DateTime]) {
+  /*def patch(title: Option[String], desc: Option[String], status: Option[TodoStatus.Value]) : Todo =
     this.copy(title = title.getOrElse(this.title),
               desc = desc.getOrElse(this.desc),
-              status = status.getOrElse(this.status))
+              status = status.getOrElse(this.status))  */
 }
+
+
 
 
 
@@ -53,12 +59,15 @@ class TodoRepo @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
 
 
   def create2(todo: Todo): Future[Long] = {
-    val newTodo = Todo(0, todo.title, todo.desc, TodoStatus.open, new DateTime(System.currentTimeMillis()))
+    val newTodo = Todo(Option.apply(0), todo.title, todo.desc,
+      Option.apply(TodoStatus.open),
+      Option.apply(new DateTime(System.currentTimeMillis())))
     db.run(Todos returning Todos.map(_.id) += newTodo)
   }
 
   def create(title: String): Future[Long] = {
-    val todo = Todo(0, title, "", TodoStatus.open, new DateTime(System.currentTimeMillis()))
+    val todo = Todo(Option.apply(0), title, "", Option.apply(TodoStatus.open),
+      Option.apply(new DateTime(System.currentTimeMillis())))
     db.run(Todos returning Todos.map(_.id) += todo)
   }
 
@@ -76,8 +85,10 @@ class TodoRepo @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
     def status = column[TodoStatus.Value]("STATUS")
     def createdDate = column[DateTime]("CREATED_DATE")
 
-    def * = (id, title, desc, status, createdDate) <> (Todo.tupled, Todo.unapply)
-    def ? = (id.?, title.?, desc.?, status.?, createdDate.?).shaped.<>({ r => import r._; _1.map(_ => Todo.tupled((_1.get, _2.get, _3.get, _4.get, _5.get))) }, (_: Any) => throw new Exception("Inserting into ? Todo not supported."))
+
+
+    def * = (id.?, title, desc, status.?, createdDate.?) <> ((Todo.apply _).tupled , Todo.unapply)
+    //def ? = (id.?, title.?, desc.?, status.?, createdDate.?).shaped.<>({ r => import r._; _1.map(_ => Todo.tupled((_1.getOrElse(0), _2.get, _3.get, _4.get, _5.get))) }, (_: Any) => throw new Exception("Inserting into ? Todo not supported."))
   }
 
   implicit val todoStatusColumnType = MappedColumnType.base[TodoStatus.Value, String](
