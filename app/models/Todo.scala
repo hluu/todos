@@ -3,14 +3,22 @@ package models
 import javax.inject.Inject
 import org.joda.time.DateTime
 import play.api.db.slick.DatabaseConfigProvider
+import play.api.libs.json.Writes
 import slick.driver.JdbcProfile
 import scala.concurrent.Future
 import SlickMapping.jodaDateTimeMapping
+import play.api.libs.json._
+import utils.EnumUtils
 
 object TodoStatus extends Enumeration {
+  type TodoStatus = Value
   val open = Value("open")
   val completed = Value("completed")
   val in_progress = Value("in-progress")
+
+  implicit val enumReads: Reads[TodoStatus] = EnumUtils.enumReads(TodoStatus)
+
+  implicit def enumWrites: Writes[TodoStatus] = EnumUtils.enumWrites
 }
 
 
@@ -20,6 +28,7 @@ case class Todo(id: Long, title: String, desc: String, status: TodoStatus.Value,
               desc = desc.getOrElse(this.desc),
               status = status.getOrElse(this.status))
 }
+
 
 
 
@@ -42,6 +51,11 @@ class TodoRepo @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
   def findByOpenStatus: DBIO[List[Todo]] =
     Todos.filter(_.status === TodoStatus.open).to[List].result
 
+
+  def create2(todo: Todo): Future[Long] = {
+    val newTodo = Todo(0, todo.title, todo.desc, TodoStatus.open, new DateTime(System.currentTimeMillis()))
+    db.run(Todos returning Todos.map(_.id) += newTodo)
+  }
 
   def create(title: String): Future[Long] = {
     val todo = Todo(0, title, "", TodoStatus.open, new DateTime(System.currentTimeMillis()))

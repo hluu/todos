@@ -12,6 +12,7 @@ DELETE  /projects/:name                      controllers.Application.delete(name
 
 
 # todos
+
 GET     /todos                               controllers.TodoController.listTodos
-PUT     /todos/:title                        controllers.TodoController.createTodo(title:String)
+PUT     /todos/:title                        controllers.TodoController.createTodo2(title:String)
 GET     /todos/:id                           controllers.TodoController.todos(id:Long)
