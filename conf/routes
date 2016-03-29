@@ -1,18 +1,19 @@
 
 
 
-GET     /                                    controllers.Application.listProjects
-PUT     /projects/:name                      controllers.Application.createProject(name: String)
-GET     /projects/list                       controllers.Application.listProjects
-GET     /projects/:id                        controllers.Application.projects(id: Long)
-PUT     /projects/:id/:name                  controllers.Application.addTaskToProject(name: String, id: Long)
-PATCH   /tasks/:id                           controllers.Application.modifyTask(id: Long, color:Option[String] ?= None)
+GET           /                          controllers.Application.listProjects
+PUT           /projects/:name            controllers.Application.createProject(name: String)
+GET           /projects/list             controllers.Application.listProjects
+GET           /projects/:id              controllers.Application.projects(id: Long)
+PUT           /projects/:id/:name        controllers.Application.addTaskToProject(name: String, id: Long)
+PATCH         /tasks/:id                 controllers.Application.modifyTask(id: Long, color:Option[String] ?= None)
 
-DELETE  /projects/:name                      controllers.Application.delete(name: String)
+DELETE        /projects/:name            controllers.Application.delete(name: String)
 
 
 # todos
 
-GET     /todos                               controllers.TodoController.listTodos
-PUT     /todos/:title                        controllers.TodoController.createTodo2(title:String)
-GET     /todos/:id                           controllers.TodoController.todos(id:Long)
+GET           /todos                     controllers.TodoController.listTodos
+POST          /todos                     controllers.TodoController.createTodo
+PUT          /todos                      controllers.TodoController.updateTodo
+GET           /todos/:id                 controllers.TodoController.todos(id:Long)

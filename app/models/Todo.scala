@@ -57,18 +57,23 @@ class TodoRepo @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
   def findByOpenStatus: DBIO[List[Todo]] =
     Todos.filter(_.status === TodoStatus.open).to[List].result
 
+  def update(todo: Todo) : Future[Option[Todo]] = {
+    println("*** Update: "+ todo.id.get)
+    val query = Todos.filter(_.id === todo.id.get).map(x => (x.title, x.desc))
 
-  def create2(todo: Todo): Future[Long] = {
+    println("*** updateStatement: "+ query.updateStatement)
+
+    println(s"*** values: '$todo.title' '$todo.desc'")
+    query.update(todo.title, todo.desc)
+
+    findById(todo.id.get)
+  }
+
+  def create(todo: Todo): Future[Long] = {
     val newTodo = Todo(Option.apply(0), todo.title, todo.desc,
       Option.apply(TodoStatus.open),
       Option.apply(new DateTime(System.currentTimeMillis())))
     db.run(Todos returning Todos.map(_.id) += newTodo)
-  }
-
-  def create(title: String): Future[Long] = {
-    val todo = Todo(Option.apply(0), title, "", Option.apply(TodoStatus.open),
-      Option.apply(new DateTime(System.currentTimeMillis())))
-    db.run(Todos returning Todos.map(_.id) += todo)
   }
 
   def insert(todo: Todo): DBIO[Long] =
