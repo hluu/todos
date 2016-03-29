@@ -9,6 +9,7 @@ import scala.concurrent.Future
 import SlickMapping.jodaDateTimeMapping
 import play.api.libs.json._
 import utils.EnumUtils
+import play.api.Logger
 
 object TodoStatus extends Enumeration {
   type TodoStatus = Value
@@ -26,18 +27,13 @@ case class Todo(id: Option[Long],
                 title: String,
                 desc: String,
                 status: Option[TodoStatus.Value],
-                createdDate:Option[DateTime]) {
+                createdDate:Option[DateTime],
+                lastUpdatedData:Option[DateTime]) {
   /*def patch(title: Option[String], desc: Option[String], status: Option[TodoStatus.Value]) : Todo =
     this.copy(title = title.getOrElse(this.title),
               desc = desc.getOrElse(this.desc),
               status = status.getOrElse(this.status))  */
 }
-
-
-
-
-
-
 
 
 class TodoRepo @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) {
@@ -58,20 +54,27 @@ class TodoRepo @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
     Todos.filter(_.status === TodoStatus.open).to[List].result
 
   def update(todo: Todo) : Future[Option[Todo]] = {
-    println("*** Update: "+ todo.id.get)
-    val query = Todos.filter(_.id === todo.id.get).map(x => (x.title, x.desc))
+    Logger.info(s"updating todo with id: $todo.id.get")
 
-    println("*** updateStatement: "+ query.updateStatement)
+    val queryQ = Todos.filter(_.id === todo.id.get)
+    val query = queryQ.map(x => (x.title, x.desc, x.lastUpdatedDate)).update(todo.title, todo.desc,
+      new DateTime(System.currentTimeMillis()))
 
-    println(s"*** values: '$todo.title' '$todo.desc'")
-    query.update(todo.title, todo.desc)
 
+    db.run(query)
     findById(todo.id.get)
+
+  }
+
+  def delete(id: Long): Unit = {
+    Logger.info(s"deleting todo with id: $id")
+    db.run(Todos.filter(_.id === id).delete)
   }
 
   def create(todo: Todo): Future[Long] = {
     val newTodo = Todo(Option.apply(0), todo.title, todo.desc,
       Option.apply(TodoStatus.open),
+      Option.apply(new DateTime(System.currentTimeMillis())),
       Option.apply(new DateTime(System.currentTimeMillis())))
     db.run(Todos returning Todos.map(_.id) += newTodo)
   }
@@ -89,11 +92,12 @@ class TodoRepo @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
     def desc = column[String]("DESC")
     def status = column[TodoStatus.Value]("STATUS")
     def createdDate = column[DateTime]("CREATED_DATE")
+    def lastUpdatedDate = column[DateTime]("LAST_UPDATED_DATE")
 
 
 
-    def * = (id.?, title, desc, status.?, createdDate.?) <> ((Todo.apply _).tupled , Todo.unapply)
-    //def ? = (id.?, title.?, desc.?, status.?, createdDate.?).shaped.<>({ r => import r._; _1.map(_ => Todo.tupled((_1.getOrElse(0), _2.get, _3.get, _4.get, _5.get))) }, (_: Any) => throw new Exception("Inserting into ? Todo not supported."))
+    def * = (id.?, title, desc, status.?, createdDate.?, lastUpdatedDate.?) <> ((Todo.apply _).tupled , Todo.unapply)
+    //def ? = (id.?, title.?, desc.?, status.?, createdDate.?, lastUpdatedDate.?).shaped.<>({ r => import r._; _1.map(_ => Todo.tupled((_1.getOrElse(0), _2.get, _3.get, _4.get, _5.get))) }, (_: Any) => throw new Exception("Inserting into ? Todo not supported."))
   }
 
   implicit val todoStatusColumnType = MappedColumnType.base[TodoStatus.Value, String](

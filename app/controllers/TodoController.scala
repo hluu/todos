@@ -11,6 +11,7 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import utils.EnumUtils
+import play.api.Logger
 
 import scala.concurrent.Future
 
@@ -20,6 +21,22 @@ import scala.concurrent.Future
  */
 class TodoController @Inject()( todoRepo: TodoRepo)
   extends Controller {
+
+  def delete(id: Long) = Action.async { implicit rs =>
+    val result = todoRepo.findById(id)
+
+    result.map(r => {
+      r match {
+        case Some(todo) =>  {
+          todoRepo.delete(id)
+          Ok(Json.obj("status" ->"OK"))
+        }
+        case None => BadRequest(Json.obj("msg: " -> s"todo with id $id not found " ))
+      }
+    })
+
+  }
+
 
   def createTodo = Action.async(BodyParsers.parse.json) { implicit request =>
 
@@ -43,9 +60,15 @@ class TodoController @Inject()( todoRepo: TodoRepo)
         s.get.id match {
           case Some(id) => {
             val incomingTodo = s.get
-            println("*** Update title: "+ incomingTodo.title)
-            println(s"updateTodo: '$incomingTodo.id.get' $incomingTodo.title, $incomingTodo.desc")
+            Logger.info("*** Update title: "+ incomingTodo.title)
+            Logger.info(s"updateTodo: '$incomingTodo.id.get' $incomingTodo.title, $incomingTodo.desc")
             val updatedTodo = todoRepo.update(incomingTodo)
+            updatedTodo.map(r => {
+              r match {
+                case Some(td) =>  Logger.info("updateTod0: " + td.title)
+                case None => Logger.warn(s"$id not found " )
+              }
+            })
             Future(Ok(Json.obj("status" ->"OK")))
           }
           case None => {
@@ -65,7 +88,7 @@ class TodoController @Inject()( todoRepo: TodoRepo)
   }
 
 
-  def todos(id: Long) = Action.async { implicit rs =>
+  def todo(id: Long) = Action.async { implicit rs =>
     val result = todoRepo.findById(id)
 
     result.map(r => {
@@ -92,20 +115,19 @@ class TodoController @Inject()( todoRepo: TodoRepo)
       (JsPath \ "title").write[String] and
       (JsPath \ "desc").write[String] and
       (JsPath \ "status").writeNullable[TodoStatus.Value] and
-      (JsPath \ "createdDate").writeNullable[DateTime]
+      (JsPath \ "createdDate").writeNullable[DateTime] and
+      (JsPath \ "lastUpdatedData").writeNullable[DateTime]
     ) (unlift(Todo.unapply))
-
-
 
   implicit  val TodoReads : Reads[Todo] = (
     (JsPath \ "id").readNullable[Long] and
     (JsPath \ "title").read[String](maxLength[String](100)) and
       (JsPath \ "desc").read[String](maxLength[String](512)) and
       (JsPath \ "status").readNullable[TodoStatus.Value] and
-      (JsPath \ "createdDate").readNullable[DateTime]
+      (JsPath \ "createdDate").readNullable[DateTime] and
+      (JsPath \ "lastUpdatedDate").readNullable[DateTime]
 
     ) (Todo.apply _)
-
 
 }
 

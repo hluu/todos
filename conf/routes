@@ -15,5 +15,6 @@ DELETE        /projects/:name            controllers.Application.delete(name: St
 
 GET           /todos                     controllers.TodoController.listTodos
 POST          /todos                     controllers.TodoController.createTodo
-PUT          /todos                      controllers.TodoController.updateTodo
-GET           /todos/:id                 controllers.TodoController.todos(id:Long)
+PUT           /todos                     controllers.TodoController.updateTodo
+GET           /todos/:id                 controllers.TodoController.todo(id:Long)
+DELETE        /todos/:id                 controllers.TodoController.delete(id:Long)
