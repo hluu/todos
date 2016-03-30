@@ -9,6 +9,9 @@ import play.api.mvc.{Action, Controller}
 class Application @Inject()( projectRepo: ProjectRepo, taskRepo: TaskRepo)
                            extends Controller {
 
+  def index = Action {
+    Ok(views.html.index())
+  }
   def addTaskToProject(color: String, projectId: Long) = Action.async { implicit rs =>
     projectRepo.addTask(color, projectId)
       .map{ _ =>  Redirect(routes.Application.projects(projectId)) }
